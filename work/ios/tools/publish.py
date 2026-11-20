@@ -65,6 +65,7 @@ def api(path: str, token: str | None, method="GET", body=None):
 def collect_files():
     files = []
     files.append((ROOT / "ci" / "ios-ipa.yml", Path(".github/workflows/ios-ipa.yml")))
+    files.append((ROOT / "ci" / "gitattributes", Path(".gitattributes")))
     for p in sorted(ROOT.rglob("*")):
         if not p.is_file():
             continue
