@@ -1,0 +1,173 @@
+name: ios-ipa
+
+# 在 GitHub 的 macOS runner 上编译出 .ipa，产物在 Actions → 本次运行 → Artifacts 里下载。
+# 用法：把本文件放到仓库根目录的 .github/workflows/ 下，push 一次或手动 Run workflow。
+#
+# 只出「未签名 ipa」：不需要配置任何 secrets，下载后用 Sideloadly / AltStore 重签即可装。
+# 要出「已签名 ipa」：再配 4 个 secrets（BUILD_CERT_P12_BASE64、BUILD_CERT_PASSWORD、
+# PROVISIONING_PROFILE_BASE64、TEAM_ID），并在导出时指定 MobileProvision 里的名称。
+
+on:
+  push:
+    paths:
+      - "work/ios/**"
+      - ".github/workflows/ios-ipa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write      # 发布 Release 需要写权限
+
+jobs:
+  build-ipa:
+    runs-on: macos-14
+    timeout-minutes: 40
+    env:
+      SCHEME: SuperLocator
+      BUNDLE_ID: com.stv.locator
+      PROJECT_DIR: work/ios/SuperLocator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 环境
+        run: |
+          xcodebuild -version
+          xcode-select -p
+          brew install xcodegen
+          python3 --version
+
+      - name: 生成工程
+        run: |
+          cd "$PROJECT_DIR"
+          xcodegen generate --spec project.yml
+          ls -la
+
+      # ---------- 单元测试（编译 + 逻辑自证，先跑这一步，失败就不出包）----------
+      - name: 单元测试（模拟器）
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          xcodebuild test \
+            -project SuperLocator.xcodeproj \
+            -scheme "$SCHEME" \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -derivedDataPath "$RUNNER_TEMP/dd-test" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            | tee "$RUNNER_TEMP/test.log" | tail -60
+          echo "---- 测试结果 ----"
+          grep -E "Test Suite .* (passed|failed)|Executed [0-9]+ test" "$RUNNER_TEMP/test.log" | tail -20
+
+      # ---------- 可选：导入签名证书 ----------
+      - name: 导入 P12 证书
+        if: ${{ secrets.BUILD_CERT_P12_BASE64 != '' }}
+        env:
+          P12_BASE64: ${{ secrets.BUILD_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.BUILD_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import "$RUNNER_TEMP/cert.p12" -k build.keychain -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          security list-keychains -d user -s build.keychain
+
+      - name: 导入 Provisioning Profile
+        if: ${{ secrets.PROVISIONING_PROFILE_BASE64 != '' }}
+        env:
+          PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_BASE64" | base64 --decode \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/superlocator.mobileprovision
+
+      # ---------- 构建 ----------
+      - name: 无签名构建 + 打 ipa
+        if: ${{ secrets.BUILD_CERT_P12_BASE64 == '' }}
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          xcodebuild -project SuperLocator.xcodeproj -scheme "$SCHEME" -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            build
+          python3 ../tools/make_ipa.py \
+            --app "$RUNNER_TEMP/dd/Build/Products/Release-iphoneos/SuperLocator.app" \
+            --out "$RUNNER_TEMP/SuperLocator-unsigned.ipa" \
+            --tipa
+
+      - name: 产物指纹
+        run: |
+          cd "$RUNNER_TEMP"
+          for f in *.ipa *.tipa; do [ -f "$f" ] && shasum -a 256 "$f"; done
+
+      - name: 签名构建 + 导出 ipa
+        if: ${{ secrets.BUILD_CERT_P12_BASE64 != '' }}
+        env:
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          PROFILE_NAME: ${{ secrets.PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          xcodebuild -project SuperLocator.xcodeproj -scheme "$SCHEME" -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/SuperLocator.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            archive
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>development</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict><key>$BUNDLE_ID</key><string>$PROFILE_NAME</string></dict>
+            <key>destination</key><string>export</string>
+            <key>thinning</key><string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/SuperLocator.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+          cp "$RUNNER_TEMP/export"/*.ipa "$RUNNER_TEMP/SuperLocator-signed.ipa"
+
+      - name: 校验 ipa 结构
+        run: |
+          set -euo pipefail
+          cd work/ios
+          for f in "$RUNNER_TEMP"/*.ipa; do
+            echo "== $f =="
+            python3 tools/make_ipa.py --check "$f" || true
+          done
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: SuperLocator-ipa
+          path: |
+            ${{ runner.temp }}/*.ipa
+            ${{ runner.temp }}/*.tipa
+          if-no-files-found: error
+          retention-days: 14
+
+      # ---------- 发布到 Release：公网免登录下载（公开仓库）----------
+      - name: 发布 Release（免登录下载）
+        if: ${{ hashFiles(format('{0}/*.ipa', runner.temp)) != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          sha=$(shasum -a 256 *.ipa | awk '{print $1}')
+          gh release view ipa-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1             || gh release create ipa-latest --repo "$GITHUB_REPOSITORY"                  --title "最新 ipa（自动发布）" --notes "sha256(ipa): $sha"
+          gh release upload ipa-latest *.ipa *.tipa --clobber --repo "$GITHUB_REPOSITORY"
+          echo "下载地址：https://github.com/$GITHUB_REPOSITORY/releases/tag/ipa-latest"
