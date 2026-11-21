@@ -44,18 +44,38 @@ jobs:
 
       # ---------- 单元测试（编译 + 逻辑自证，先跑这一步，失败就不出包）----------
       - name: 单元测试（模拟器）
+        id: unit
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -uo pipefail
           cd "$PROJECT_DIR"
-          xcodebuild test \
-            -project SuperLocator.xcodeproj \
-            -scheme "$SCHEME" \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -derivedDataPath "$RUNNER_TEMP/dd-test" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            | tee "$RUNNER_TEMP/test.log" | tail -60
-          echo "---- 测试结果 ----"
-          grep -E "Test Suite .* (passed|failed)|Executed [0-9]+ test" "$RUNNER_TEMP/test.log" | tail -20
+          echo "== 可用模拟器 ==" | tee "$RUNNER_TEMP/test.log"
+          xcrun simctl list devices available | grep -E "iPhone" | head -12 | tee -a "$RUNNER_TEMP/test.log" || true
+          DEST="platform=iOS Simulator,name=iPhone 16"
+          if ! xcrun simctl list devices available | grep -q "iPhone 16"; then
+            ALT=$(xcrun simctl list devices available | grep -oE "iPhone [0-9A-Za-z ]+" | head -1 | sed 's/ *$//')
+            [ -n "${ALT:-}" ] && DEST="platform=iOS Simulator,name=$ALT"
+          fi
+          echo "== destination: $DEST ==" | tee -a "$RUNNER_TEMP/test.log"
+          xcodebuild test             -project SuperLocator.xcodeproj             -scheme "$SCHEME"             -destination "$DEST"             -derivedDataPath "$RUNNER_TEMP/dd-test"             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO             2>&1 | tee -a "$RUNNER_TEMP/test.log" | tail -80
+          rc=${PIPESTATUS[0]}
+          echo "---- 测试结果 (xcodebuild rc=$rc) ----" | tee -a "$RUNNER_TEMP/test.log"
+          grep -E "error:|Test Suite .* (passed|failed)|Executed [0-9]+ test" "$RUNNER_TEMP/test.log" | tail -40 || true
+          exit $rc
+
+      - name: 上传测试日志（失败也能取）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-log
+          path: ${{ runner.temp }}/test.log
+          if-no-files-found: warn
+
+      - name: 测试没通过就停
+        if: steps.unit.outcome != 'success'
+        run: |
+          echo "单元测试未通过（或模拟器不可用），看 unit-test-log 工件里的 error: 行"
+          exit 1
 
       # ---------- 可选：导入签名证书 ----------
       - name: 导入 P12 证书
