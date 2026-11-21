@@ -1,0 +1,9 @@
+Package: com.stv.locsim
+Name: LocSim
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: 系统级定位替换（离线可用）—— 所有 App 的 CoreLocation 读数改为配置里的坐标/路径
+Maintainer: TangTang
+Author: TangTang
+Section: Tweaks
+Depends: mobilesubstrate

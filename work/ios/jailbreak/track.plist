@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>enabled</key>
+	<true/>
+	<key>lat</key>
+	<real>36.71021</real>
+	<key>lng</key>
+	<real>117.02155</real>
+	<key>radius</key>
+	<real>8.0</real>
+	<key>biasWeight</key>
+	<real>0.0</real>
+	<key>biasBearing</key>
+	<real>nan</real>
+	<key>loop</key>
+	<false/>
+	<key>route</key>
+	<array>
+		<dict>
+			<key>lat</key>
+			<real>36.71021</real>
+			<key>lng</key>
+			<real>117.02155</real>
+			<key>speed</key>
+			<real>13.712</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.71031</real>
+			<key>lng</key>
+			<real>117.02164</real>
+			<key>speed</key>
+			<real>16.249</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.71042</real>
+			<key>lng</key>
+			<real>117.02176</real>
+			<key>speed</key>
+			<real>16.06</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.7105</real>
+			<key>lng</key>
+			<real>117.02191</real>
+			<key>speed</key>
+			<real>16.558</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.71056</real>
+			<key>lng</key>
+			<real>117.02208</real>
+			<key>speed</key>
+			<real>0.0</real>
+		</dict>
+	</array>
+</dict>
+</plist>

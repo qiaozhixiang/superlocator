@@ -62,7 +62,7 @@ def http_check(use_exe: bool = False) -> bool:
         cmd = [str(exe)]
     else:
         cmd = [sys.executable, str(ROOT / "companion" / "superlocator.py")]
-    cmd += ["serve", "--engine", "dry", "--port", str(port), "--http-port", str(web), "--quiet"]
+    cmd += ["serve", "--engine", "dry", "--no-license", "--port", str(port), "--http-port", str(web), "--quiet"]
     proc = subprocess.Popen(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, encoding="utf-8", errors="replace")
     ok = True

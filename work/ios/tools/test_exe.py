@@ -51,7 +51,7 @@ def launch(engine: str, port: int) -> subprocess.Popen:
     else:
         cmd = [sys.executable, str(COMPANION / "superlocator.py")]
     return subprocess.Popen(
-        cmd + ["serve", "--engine", engine, "--port", str(port)],
+        cmd + ["serve", "--engine", engine, "--no-license", "--port", str(port)],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
         encoding="utf-8", errors="replace", bufsize=1,
     )

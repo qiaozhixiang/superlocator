@@ -7,10 +7,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "out" / "SuperLocator-repo.zip"
-SKIP = {"build", "out", "dist", "__pycache__", ".git"}
+SKIP = {"build", "out", "dist", "__pycache__", ".git", ".publish"}
 count = 0
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     z.write(ROOT / "ci" / "ios-ipa.yml", ".github/workflows/ios-ipa.yml")
+    count += 1
+    z.write(ROOT / "ci" / "gitattributes", ".gitattributes")
     count += 1
     for p in sorted(ROOT.rglob("*")):
         if not p.is_file():

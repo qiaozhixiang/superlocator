@@ -1,0 +1,12 @@
+TARGET := iphone:clang:16.5:15.0
+ARCHS = arm64 arm64e
+INSTALL_TARGET_PROCESSES = SpringBoard
+
+include $(THEOS)/makefiles/common.mk
+
+TWEAK_NAME = LocSim
+LocSim_FILES = Tweak.xm
+LocSim_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+LocSim_FRAMEWORKS = CoreLocation Foundation UIKit
+
+include $(THEOS_MAKE_PATH)/tweak.mk

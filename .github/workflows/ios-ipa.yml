@@ -105,6 +105,25 @@ jobs:
           cd "$RUNNER_TEMP"
           for f in *.ipa *.tipa; do [ -f "$f" ] && shasum -a 256 "$f"; done
 
+      - name: 打包 TrollStore tipa（塞进 DVT 特权 entitlements）
+        working-directory: work/ios
+        run: |
+          python3 tools/make_tipa.py             --ipa "$RUNNER_TEMP/SuperLocator-unsigned.ipa"             --out "$RUNNER_TEMP/SuperLocator.trollstore.tipa"             --entitlements ondevice/entitlements.plist
+          shasum -a 256 "$RUNNER_TEMP/SuperLocator.trollstore.tipa"
+
+      - name: 拉取 DDI 并注入 tipa（端上模式必需）
+        working-directory: work/ios
+        run: |
+          set -euo pipefail
+          python3 tools/fetch_ddi.py --ios 17.0 --variant personalized
+          python3 tools/inject_ddi.py \
+            --ipa "$RUNNER_TEMP/SuperLocator.trollstore.tipa" \
+            --ddi ondevice/ddi/17.0 --ver 17.0 \
+            --out "$RUNNER_TEMP/SuperLocator.trollstore.ddi.tipa"
+          mv "$RUNNER_TEMP/SuperLocator.trollstore.ddi.tipa" "$RUNNER_TEMP/SuperLocator.trollstore.tipa"
+          shasum -a 256 "$RUNNER_TEMP/SuperLocator.trollstore.tipa"
+          unzip -l "$RUNNER_TEMP/SuperLocator.trollstore.tipa" | grep -E "ddi/|SuperLocator.app/$" | head -8
+
       - name: 签名构建 + 导出 ipa
         if: ${{ secrets.BUILD_CERT_P12_BASE64 != '' }}
         env:

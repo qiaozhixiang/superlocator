@@ -1,0 +1,20 @@
+{
+  "variant": "personalized",
+  "ios": "17.0",
+  "repo": "doronz88/DeveloperDiskImage",
+  "dir": "PersonalizedImages/Xcode_iOS_DDI_Personalized",
+  "files": {
+    "BuildManifest.plist": {
+      "size": 800656,
+      "sha256": "3c4eee2be4a0a853044dc32dbbd62699302b1dfd317aaf4f1cf36368b7639bb0"
+    },
+    "Image.dmg": {
+      "size": 17084416,
+      "sha256": "0de55b0ccde9d5790c9c9f4e1a413225443fce7ea75acb503aca11e7d8156646"
+    },
+    "Image.dmg.trustcache": {
+      "size": 1851,
+      "sha256": "f0fb56da2829f69b8aae113584349635738e68d77c82a726ed72040890f16bf4"
+    }
+  }
+}

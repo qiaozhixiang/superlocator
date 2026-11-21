@@ -33,6 +33,10 @@ final class CompanionClient: ObservableObject {
     @Published var serverVersion: String = ""
     @Published var lastError: String = ""
     @Published var sentCount: Int = 0
+    @Published var licenseEnabled: Bool = false
+    @Published var licenseActive: Bool = false
+    @Published var licenseSerial: Int = 0
+    @Published var licenseMessage: String = ""
 
     private var connection: NWConnection?
     private var buffer = Data()
@@ -118,13 +122,27 @@ final class CompanionClient: ObservableObject {
                   let obj = try? JSONSerialization.jsonObject(with: Data(lineData)) as? [String: Any] else { continue }
             if let version = obj["version"] as? String { serverVersion = version }
             if let dev = obj["device"] as? String, !dev.isEmpty { deviceName = dev }
+            if let lic = obj["license"] as? [String: Any] { applyLicense(lic) }
+            if obj["needLicense"] as? Bool == true {
+                licenseActive = false
+                licenseMessage = (obj["error"] as? String) ?? "电脑端要求先激活"
+            }
+            if obj["cmd"] as? String == "license_activate" {
+                licenseMessage = (obj["message"] as? String) ?? ""
+                licenseActive = (obj["active"] as? Bool) ?? false
+                licenseSerial = (obj["serial"] as? Int) ?? 0
+                licenseEnabled = (obj["enabled"] as? Bool) ?? true
+                LicenseStore.shared.updateServer(active: licenseActive, serial: licenseSerial, message: licenseMessage)
+            }
             onEvent?(obj)
         }
     }
 
     /// 发送一条命令；未连接时静默丢弃并记录原因
     @discardableResult
-    func send(_ obj: [String: Any]) -> Bool {
+    func send(_ payload: [String: Any]) -> Bool {
+        var obj = payload
+        obj["device"] = CodeMath.deviceId()
         guard let conn = connection else {
             lastError = "未连接伴侣程序"
             return false
@@ -142,6 +160,20 @@ final class CompanionClient: ObservableObject {
     }
 
     // MARK: - 语义化命令
+
+    private func applyLicense(_ lic: [String: Any]) {
+        licenseEnabled = (lic["enabled"] as? Bool) ?? false
+        licenseActive = (lic["active"] as? Bool) ?? false
+        licenseSerial = (lic["serial"] as? Int) ?? 0
+        LicenseStore.shared.updateServer(active: licenseActive, serial: licenseSerial)
+    }
+
+    func licenseStatus() { send(["cmd": "license_status"]) }
+
+    func activate(code: String) {
+        licenseMessage = "正在校验…"
+        send(["cmd": "license_activate", "code": code])
+    }
 
     func setLocation(lat: Double, lng: Double) {
         send(["cmd": "set", "lat": lat, "lon": lng])

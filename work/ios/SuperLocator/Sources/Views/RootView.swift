@@ -53,10 +53,21 @@ struct RootView: View {
     @StateObject private var routes = RouteStore.shared
     @StateObject private var location = LocationProvider()
 
+    @StateObject private var licenseStore = LicenseStore.shared
     @State private var tab = 0
     @State private var showConnection = false
 
     var body: some View {
+        Group {
+            if licenseStore.activated {
+                tabs
+            } else {
+                ActivationView(client: client)
+            }
+        }
+    }
+
+    private var tabs: some View {
         TabView(selection: $tab) {
             RecordView(tracks: tracks, client: client, location: location)
                 .tabItem { Label("录制", systemImage: "record.circle") }
@@ -90,6 +101,7 @@ struct RootView: View {
             }
             // 没有电脑时，切到「本机预览」：只在界面里移动，不写设备
             client.connect()
+            client.licenseStatus()
         }
     }
 }

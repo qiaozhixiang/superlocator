@@ -248,4 +248,46 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(points?.count, t.points.count)
         XCTAssertEqual(points?.first?.count, 3, "点位必须是 [t,lat,lng] 三元组")
     }
+
+    // MARK: - 激活码（格式层，密钥在电脑端）
+
+    func testLicenseParseAndPretty() {
+        let code = "01C6S-H94W6-DFR0T-N95C2"
+        XCTAssertEqual(CodeMath.clean(code).count, 20)
+        let parsed = CodeMath.parse(code)
+        XCTAssertNotNil(parsed)
+        XCTAssertEqual(parsed?.serial, 1)
+        XCTAssertEqual(CodeMath.pretty(CodeMath.clean(code)), code)
+    }
+
+    func testLicenseRejectsBadInput() {
+        XCTAssertNil(CodeMath.parse("01C6S-H94W6-DFR0T-N95C"))     // 少一位
+        XCTAssertNil(CodeMath.parse("01C6S-H94W6-DFR0T-N95C2X"))   // 多一位
+        XCTAssertNil(CodeMath.parse("IIIII-IIIII-IIIII-IIIII"))     // 字母表里没有 I
+    }
+
+    func testLicenseSerialIsInPayload() {
+        for serial in [1, 7, 42, 999, 1023] {
+            let code = String(format: "%010d", serial)   // 仅构造 payload 高位，不校验 MAC
+            let payload = serial << 90
+            var chars: [Character] = []
+            var v = payload
+            for _ in 0..<20 { chars.append(CodeMath.alphabet[v & 31]); v >>= 5 }
+            _ = code
+            XCTAssertEqual(CodeMath.serial(of: String(chars.reversed())), serial)
+        }
+    }
+
+    func testLicenseStoreRoundTrip() {
+        let store = LicenseStore.shared
+        let before = store.code
+        store.save("01C6S-H94W6-DFR0T-N95C2")
+        XCTAssertTrue(store.wellFormed)
+        XCTAssertFalse(store.activated)          // 电脑端还没确认
+        store.updateServer(active: true, serial: 1)
+        XCTAssertTrue(store.activated)
+        store.updateServer(active: false, serial: 1)
+        XCTAssertFalse(store.activated)          // 吊销即时反映
+        if before.isEmpty { store.clear() } else { store.save(before) }
+    }
 }

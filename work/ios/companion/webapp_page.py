@@ -65,6 +65,12 @@ canvas{width:100%;height:180px;background:#10151f;border-radius:12px;display:blo
 .item .meta{color:var(--dim);font-size:11.5px}
 .item button{padding:7px 10px;font-size:13px}
 .badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;background:#1d2740;color:var(--cyan);margin-left:6px}
+.licbar{margin:10px 12px 0;padding:10px 12px;border:1px solid #2a3654;border-radius:12px;background:#141b2b;font-size:13px;color:var(--fg)}
+.licbar.ok{border-color:#1f6f45;background:#0f1f18}
+.licbar.no{border-color:#7a4a12;background:#221708}
+.licbar .row{display:flex;gap:8px}
+.licbar input{flex:1;min-width:0}
+.hintline{color:var(--dim);font-size:11.5px;margin-top:6px;line-height:1.45}
 footer{color:var(--dim);font-size:11.5px;text-align:center;padding:10px 12px 24px}
 </style>
 </head>
@@ -78,6 +84,12 @@ footer{color:var(--dim);font-size:11.5px;text-align:center;padding:10px 12px 24p
   <button id="t0" class="on" onclick="tab(0)">手动</button>
   <button id="t1" onclick="tab(1)">轨迹</button>
   <button id="t2" onclick="tab(2)">预设路径</button>
+</div>
+
+<div id="licbar" class="licbar">
+  <div><b>授权</b> <span id="lictext">正在读取…</span></div>
+  <div class="row" style="margin-top:8px"><input id="liccode" placeholder="激活码：XXXXX-XXXXX-XXXXX-XXXXX" autocapitalize="characters"><button id="licbtn" onclick="licActivate()">激活</button></div>
+  <div class="hintline" id="lichint">激活码只在电脑端校验；未激活时「设坐标 / 重放 / 路径」会被电脑端拒绝。</div>
 </div>
 
 <main>
@@ -166,6 +178,8 @@ footer{color:var(--dim);font-size:11.5px;text-align:center;padding:10px 12px 24p
 
 <script>
 var API='/api/cmd';
+var DEV=(function(){var k='stv_device',v=localStorage.getItem(k);if(!v){v='web-'+Math.random().toString(36).slice(2,10);localStorage.setItem(k,v)}return v})();
+var LIC={enabled:false,active:true,serial:0};
 var state={lat:36.667662,lon:117.027707,online:false,tracks:[],groups:[],sel:-1,nodes:[],recording:false,recPts:[],mapWgs:null};
 var GRP_KEY='stv_groups',TRK_KEY='stv_tracks';
 
@@ -174,17 +188,19 @@ function say(t){ if(typeof t!=='string') t=JSON.stringify(t); $('playstat').text
 function tab(i){for(var k=0;k<3;k++){$('t'+k).className=(k===i?'on':'');$('p'+k).className=(k===i?'panel on':'panel')}}
 
 function api(cmd,extra){
-  var body=Object.assign({cmd:cmd},extra||{});
+  var body=Object.assign({cmd:cmd,device:DEV},extra||{});
   return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){return r.json()}).catch(function(e){return {ok:false,error:String(e)}});
 }
 
 function poll(){
+  licPoll();
   api('status').then(function(r){
     state.online=!!r.ok;
     $('dot').className='dot'+(state.online?' ok':'');
     $('conn').textContent=state.online?('已连接电脑端 '+(location.host||'')):('未连接：'+(r.error||'检查电脑端是否在跑'));
     if(r.ok){
+      if(r.needLicense){ $('lichint').textContent='电脑端拒绝了这条命令：请先在授权条里输入激活码' }
       if(r.running){
         var t='重放中 '+(r.progress||0).toFixed(1)+'% · '+Math.round(r.pushes||0)+' 帧 · v='+(r.speed||0).toFixed(2)+'m/s';
         if(r.segment!==undefined&&r.segment!==null)t+=' · 第'+r.segment+'段';
@@ -195,6 +211,30 @@ function poll(){
       }
     }
   });
+}
+
+/* ---------- 授权 ---------- */
+function licRender(){
+  var bar=$('licbar'); if(!bar) return;
+  var t=$('lictext');
+  bar.className='licbar '+(LIC.active?'ok':'no');
+  if(!LIC.enabled){ t.textContent='未启用（电脑端 --no-license）'; return }
+  t.textContent=LIC.active?('已激活 · 序号 #'+LIC.serial+' · 本机 '+DEV):('未激活 · 本机设备号 '+DEV);
+}
+function licPoll(){
+  fetch('/api/license/status?device='+encodeURIComponent(DEV)).then(function(r){return r.json()})
+    .then(function(r){ if(r&&typeof r.active==='boolean'){ LIC.enabled=!!r.enabled; LIC.active=!!r.active; LIC.serial=r.serial||0; licRender() } })
+    .catch(function(){});
+}
+function licActivate(){
+  var code=($('liccode').value||'').trim();
+  if(!code){ $('lichint').textContent='先填激活码'; return }
+  fetch('/api/license/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,device:DEV})})
+    .then(function(r){return r.json()}).then(function(r){
+      $('lichint').textContent=(r&&r.message)?r.message:JSON.stringify(r||{});
+      if(r&&r.ok){ LIC.active=true; LIC.serial=r.serial||0; LIC.enabled=true; $('liccode').value=''; licRender() }
+      licPoll();
+    }).catch(function(e){ $('lichint').textContent='激活请求失败：'+e });
 }
 
 /* ---------- 坐标换算 ---------- */
@@ -483,7 +523,7 @@ function drawCanvas(){
 loadLocal();refreshGroups();renderTracks();
 api('status').then(function(){setPos(true)});
 setTimeout(function(){bindMap();drawCanvas()},60);
-setInterval(poll,700);poll();
+licRender();licPoll();setInterval(poll,700);poll();
 window.addEventListener('resize',function(){render();drawCanvas()});
 </script>
 </body>

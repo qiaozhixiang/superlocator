@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "secret": "bf20b10ec7462cb6c154027ceb07778c06ce91747e5822120ad40d68eecfd00e",
+  "createdAt": "2026-11-21 19:39:07",
+  "nextSerial": 3,
+  "codes": [
+    {
+      "serial": 1,
+      "code": "01BYG-X2PB9-AMHP6-CWJWM",
+      "device": null,
+      "note": "首发测试通用码",
+      "createdAt": "2026-11-21 19:30:25"
+    },
+    {
+      "serial": 2,
+      "code": "02G8A-J4Y0Z-8NNY3-YY3JR",
+      "device": null,
+      "note": "首发测试通用码",
+      "createdAt": "2026-11-21 19:30:25"
+    }
+  ],
+  "revoked": [],
+  "activations": []
+}

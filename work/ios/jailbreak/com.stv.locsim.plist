@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>enabled</key>
+	<true/>
+	<key>lat</key>
+	<real>36.71021</real>
+	<key>lng</key>
+	<real>117.02155</real>
+	<key>radius</key>
+	<real>15.0</real>
+	<key>biasWeight</key>
+	<real>0.6</real>
+	<key>biasBearing</key>
+	<real>90.0</real>
+	<key>loop</key>
+	<true/>
+	<key>route</key>
+	<array>
+		<dict>
+			<key>lat</key>
+			<real>36.71021</real>
+			<key>lng</key>
+			<real>117.02155</real>
+			<key>speed</key>
+			<real>1.4</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.71038</real>
+			<key>lng</key>
+			<real>117.0219</real>
+			<key>speed</key>
+			<real>2.2</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.71052</real>
+			<key>lng</key>
+			<real>117.02214</real>
+			<key>speed</key>
+			<real>1.4</real>
+		</dict>
+		<dict>
+			<key>lat</key>
+			<real>36.71062</real>
+			<key>lng</key>
+			<real>117.02242</real>
+			<key>speed</key>
+			<real>3.0</real>
+		</dict>
+	</array>
+</dict>
+</plist>
