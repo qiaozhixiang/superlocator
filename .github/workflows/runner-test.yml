@@ -1,11 +1,15 @@
 name: runner-test
 on: [push, workflow_dispatch]
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-    steps:
-      - run: uname -a
-  mac:
+  m13:
+    runs-on: macos-13
+    steps: [{run: sw_vers}]
+  m14:
     runs-on: macos-14
-    steps:
-      - run: sw_vers
+    steps: [{run: sw_vers}]
+  m15:
+    runs-on: macos-15
+    steps: [{run: sw_vers}]
+  ml:
+    runs-on: macos-latest
+    steps: [{run: sw_vers}]
