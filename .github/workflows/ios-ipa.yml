@@ -239,12 +239,13 @@ jobs:
 
       # ---------- 发布到 Release：公网免登录下载（公开仓库）----------
       - name: 发布 Release（免登录下载）
-        if: ${{ hashFiles(format('{0}/*.ipa', runner.temp)) != '' }}
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           cd "$RUNNER_TEMP"
+          ls *.ipa >/dev/null 2>&1 || { echo "没有 ipa，跳过发布"; exit 0; }
           sha=$(shasum -a 256 *.ipa | awk '{print $1}')
           gh release view ipa-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1             || gh release create ipa-latest --repo "$GITHUB_REPOSITORY"                  --title "最新 ipa（自动发布）" --notes "sha256(ipa): $sha"
           gh release upload ipa-latest *.ipa *.tipa --clobber --repo "$GITHUB_REPOSITORY"
