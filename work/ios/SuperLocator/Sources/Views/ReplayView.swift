@@ -31,8 +31,7 @@ struct TrackPreviewView: View {
             ctx.stroke(grid, with: .color(Color(red: 0.35, green: 0.39, blue: 0.47).opacity(0.25)), lineWidth: 0.5)
 
             guard let track, track.points.count > 1 else {
-                var text = Text("还没有轨迹")
-                text.font = .system(size: 12)
+                let text = Text("还没有轨迹").font(.system(size: 12))
                 ctx.draw(text, at: CGPoint(x: size.width / 2, y: size.height / 2))
                 return
             }
@@ -62,14 +61,14 @@ struct TrackPreviewView: View {
                 dot(ctx, pj, r: 4.5, color: Color(red: 1, green: 0.23, blue: 0.34))
             }
 
-            var left = Text("\(track.points.count) 点 · \(Int(track.distanceM.rounded())) m · \(Track.formatDuration(track.durationMs))")
-            left.font = .system(size: 9)
-            left.foregroundColor = Color(red: 0.66, green: 0.7, blue: 0.78)
+            let left = Text("\(track.points.count) 点 · \(Int(track.distanceM.rounded())) m · \(Track.formatDuration(track.durationMs))")
+                .font(.system(size: 9))
+                .foregroundColor(Color(red: 0.66, green: 0.7, blue: 0.78))
             ctx.draw(left, at: CGPoint(x: 8, y: size.height - 10), anchor: .leading)
 
-            var right = Text(String(format: "重放 %.0f%% · 偏移 %.1f m", progress * 100, offsetMeters))
-            right.font = .system(size: 9)
-            right.foregroundColor = Color(red: 0.66, green: 0.7, blue: 0.78)
+            let right = Text(String(format: "重放 %.0f%% · 偏移 %.1f m", progress * 100, offsetMeters))
+                .font(.system(size: 9))
+                .foregroundColor(Color(red: 0.66, green: 0.7, blue: 0.78))
             ctx.draw(right, at: CGPoint(x: size.width - 8, y: size.height - 10), anchor: .trailing)
         }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
