@@ -1,0 +1,9 @@
+commit=15ed22d3e6f5d2f496ce65f95752fbf0ac0aa981
+run=12
+test=success
+build=success
+ipa:
+  cd7532fe162bae38f0386732728e93058af7c182037c5f580c7c2201917552b3  SuperLocator-unsigned.ipa
+  cd7532fe162bae38f0386732728e93058af7c182037c5f580c7c2201917552b3  SuperLocator-unsigned.tipa
+  0443f77a69c2303a89fd7928ad04bb7b2cbf81fc0a191cec4c926fdc384a01b0  SuperLocator.trollstore.tipa
+push-ipa-branch:
