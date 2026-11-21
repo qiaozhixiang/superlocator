@@ -157,7 +157,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$PROJECT_DIR"
-          python3 ../tools/make_ipa.py             --app "$RUNNER_TEMP/dd/Build/Products/Release-iphoneos/SuperLocator.app"             --out "$RUNNER_TEMP/SuperLocator-unsigned.ipa"             --tipa
+          python3 ../tools/make_ipa.py             --app "$RUNNER_TEMP/dd/Build/Products/Release-iphoneos/SuperLocator.app"             --out "$RUNNER_TEMP/SuperLocator-unsigned.ipa"             --tipa --allow-unsigned
       - name: 产物指纹
         run: |
           cd "$RUNNER_TEMP"
@@ -224,7 +224,7 @@ jobs:
           cd work/ios
           for f in "$RUNNER_TEMP"/*.ipa; do
             echo "== $f =="
-            python3 tools/make_ipa.py --check "$f" || true
+            python3 tools/make_ipa.py --allow-unsigned --check "$f" || true
           done
 
       - name: 上传产物

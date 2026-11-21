@@ -136,7 +136,7 @@ def from_archive(archive: Path) -> Path:
 # --------------------------------------------------------------------------- #
 # 校验
 # --------------------------------------------------------------------------- #
-def check(ipa: Path) -> int:
+def check(ipa: Path, allow_unsigned: bool = False) -> int:
     if not ipa.is_file():
         raise SystemExit(f"[x] 文件不存在：{ipa}")
     print(f"[i] {ipa.name}  {human(ipa.stat().st_size)}  sha256={sha256(ipa)}")
@@ -183,6 +183,11 @@ def check(ipa: Path) -> int:
                 mark = f"{base}Frameworks/{fw}/_CodeSignature/CodeResources"
                 if mark not in names:
                     print(f"[!] 框架 {fw} 没有签名文件（重签时会一并处理）")
+    if problems and allow_unsigned:
+        problems = [x for x in problems if not (x.startswith("未签名") or x.startswith("没有 embedded.mobileprovision"))]
+        if problems:
+            print("[!] 除签名外还有问题")
+
     if problems:
         print("\n[!] 发现 %d 个问题：" % len(problems))
         for p in problems:
@@ -249,25 +254,26 @@ def main() -> int:
     ap.add_argument("--check", type=Path, metavar="IPA", help="校验现成 IPA")
     ap.add_argument("--tipa", action="store_true", help="额外产出一份 .tipa（TrollStore 直装）")
     ap.add_argument("--selftest", action="store_true", help="造 demo 验证打包器")
+    ap.add_argument("--allow-unsigned", action="store_true", help="未签名/无描述文件不算失败（CI 出未签名 ipa 用）")
     args = ap.parse_args()
 
     if args.selftest:
         return selftest()
     if args.check:
-        return check(args.check)
+        return check(args.check, args.allow_unsigned)
     if args.archive:
         app = from_archive(args.archive)
         out = args.out or Path(f"{app.stem}.ipa")
         pack(app, out)
         if args.tipa:
             emit_tipa(out)
-        return check(out)
+        return check(out, args.allow_unsigned)
     if args.app:
         out = args.out or Path(f"{args.app.stem}.ipa")
         pack(args.app, out)
         if args.tipa:
             emit_tipa(out)
-        return check(out)
+        return check(out, args.allow_unsigned)
     ap.print_help()
     return 2
 
