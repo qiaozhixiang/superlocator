@@ -238,6 +238,22 @@ jobs:
           retention-days: 14
 
       # ---------- 发布到 Release：公网免登录下载（公开仓库）----------
+      - name: 推送 ipa 到 ipa-build 分支（git 可取，绕开 API 限流）
+        if: always()
+        run: |
+          set -uo pipefail
+          cd "$RUNNER_TEMP"
+          ls *.ipa >/dev/null 2>&1 || { echo "没有 ipa，跳过推分支"; exit 0; }
+          rm -rf ipab && mkdir ipab
+          cp *.ipa *.tipa ipab/ 2>/dev/null || cp *.ipa ipab/
+          ( cd ipab && shasum -a 256 * > SHA256SUMS.txt
+            git init -q -b ipa-build
+            git config user.name "SuperLocator Bot"
+            git config user.email "qiaozhixiang@users.noreply.github.com"
+            git add -A && git commit -qm "ipa ${GITHUB_SHA::7} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/ipa-build )
+          echo "分支地址：https://github.com/${GITHUB_REPOSITORY}/tree/ipa-build"
+
       - name: 发布 Release（免登录下载）
         if: always()
         env:
