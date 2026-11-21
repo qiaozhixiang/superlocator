@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build-ipa:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 40
     env:
       SCHEME: SuperLocator
@@ -50,7 +50,7 @@ jobs:
           xcodebuild test \
             -project SuperLocator.xcodeproj \
             -scheme "$SCHEME" \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
             -derivedDataPath "$RUNNER_TEMP/dd-test" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             | tee "$RUNNER_TEMP/test.log" | tail -60
