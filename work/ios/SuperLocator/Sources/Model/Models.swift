@@ -48,7 +48,10 @@ struct Track: Codable, Identifiable, Hashable {
     var intervalMs: Int = 500
     var points: [TrackPoint] = []
 
-    var durationMs: Int { points.last?.t ?? 0 }
+    var durationMs: Int {
+        guard let f = points.first, let l = points.last, l.t > f.t else { return 0 }
+        return l.t - f.t
+    }
 
     var distanceM: Double {
         guard points.count > 1 else { return 0 }

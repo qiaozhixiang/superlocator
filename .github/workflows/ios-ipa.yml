@@ -251,7 +251,7 @@ jobs:
             git config user.name "SuperLocator Bot"
             git config user.email "qiaozhixiang@users.noreply.github.com"
             git add -A && git commit -qm "ipa ${GITHUB_SHA::7} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/ipa-build )
+            git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/ipa-build 2>&1 | tail -6 | tee "$RUNNER_TEMP/pushipa.log" )
           echo "分支地址：https://github.com/${GITHUB_REPOSITORY}/tree/ipa-build"
 
       - name: 发布 Release（免登录下载）
@@ -279,6 +279,7 @@ jobs:
             echo "build=${{ steps.build.outcome }}"
             if ls "$RUNNER_TEMP"/*.ipa >/dev/null 2>&1; then
               echo "ipa:"; ( cd "$RUNNER_TEMP" && shasum -a 256 *.ipa *.tipa 2>/dev/null | sed 's/^/  /' )
+            echo "push-ipa-branch:"; sed 's/^/  /' "$RUNNER_TEMP/pushipa.log" 2>/dev/null || echo "  (no log)"
             else
               echo "ipa: none"
             fi

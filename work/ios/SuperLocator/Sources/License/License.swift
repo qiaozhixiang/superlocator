@@ -11,18 +11,19 @@ enum CodeMath {
         input.uppercased().filter { alphabet.contains($0) }
     }
 
-    /// 20 个字符 = 100 bit：高 10 bit 串号，低 90 bit 是 MAC
+    /// 20 个字符 = 100 bit：高 10 bit 串号，低 90 bit 是 MAC。
+    /// Swift 的 Int 只有 64 bit，装不下 100 bit，所以这里只解出串号（前 2 个字符 = 10 bit）；
+    /// MAC 的合法性由电脑端台账判定（iOS 侧不持有 secret）。
     static func parse(_ code: String) -> (serial: Int, mac: Int)? {
         let c = clean(code)
         guard c.count == 20 else { return nil }
-        var v = 0
-        for ch in c {
+        var serial = 0
+        for ch in c.prefix(2) {
             guard let i = alphabet.firstIndex(of: ch) else { return nil }
-            v = (v << 5) | i
+            serial = (serial << 5) | i
         }
-        let serial = v >> 90
         guard (1...maxSerial).contains(serial) else { return nil }
-        return (serial, v & ((1 << 90) - 1))
+        return (serial, 0)
     }
 
     static func serial(of code: String) -> Int { parse(code)?.serial ?? 0 }
