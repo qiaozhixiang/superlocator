@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]          # work/ios
 STAGE = ROOT / ".publish" / "repo"
-SKIP_PARTS = {"build", "out", "dist", "__pycache__", ".publish", ".git"}
+SKIP_PARTS = {"build", "out", "dist", "__pycache__", ".publish", ".git", "ddi"}
 DEFAULT_REPO = "qiaozhixiang/superlocator"
 API = "https://api.github.com"
 
@@ -72,7 +72,7 @@ def collect_files():
         rel = p.relative_to(ROOT)
         if any(part in SKIP_PARTS for part in rel.parts):
             continue
-        if p.suffix in (".pyc", ".log") or p.name in (".DS_Store",):
+        if p.suffix in (".pyc", ".log", ".dmg", ".trustcache") or p.name in (".DS_Store", "ddi_index.json", "BuildManifest.plist"):
             continue
         files.append((p, Path("work/ios") / rel))
     return files
