@@ -267,14 +267,15 @@ final class CoreTests: XCTestCase {
     }
 
     func testLicenseSerialIsInPayload() {
+        // Swift 的 Int 装不下 100 bit，这里只按格式拼：前 2 字符 = 10 bit 串号，后 18 字符当 MAC 填空
         for serial in [1, 7, 42, 999, 1023] {
-            let code = String(format: "%010d", serial)   // 仅构造 payload 高位，不校验 MAC
-            let payload = serial << 90
             var chars: [Character] = []
-            var v = payload
-            for _ in 0..<20 { chars.append(CodeMath.alphabet[v & 31]); v >>= 5 }
-            _ = code
-            XCTAssertEqual(CodeMath.serial(of: String(chars.reversed())), serial)
+            for shift in stride(from: 5, through: 0, by: -5) {
+                chars.append(CodeMath.alphabet[(serial >> shift) & 31])
+            }
+            let code = String(chars) + String(repeating: "0", count: 18)
+            XCTAssertEqual(code.count, 20)
+            XCTAssertEqual(CodeMath.serial(of: code), serial)
         }
     }
 
