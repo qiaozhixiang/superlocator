@@ -81,7 +81,7 @@ jobs:
           git config user.email "qiaozhixiang@users.noreply.github.com"
           git add ci-logs/test.log
           git commit -m "ci: 回传测试日志 [skip ci]" >/dev/null 2>&1 || true
-          git push origin HEAD:refs/heads/ci-log >/dev/null 2>&1 || true
+          git push -f origin HEAD:refs/heads/ci-log >/dev/null 2>&1 || true
 
       - name: 测试没通过就标记（暂不拦构建，先拿 ipa 与日志）
         continue-on-error: true
@@ -145,7 +145,7 @@ jobs:
           git config user.email "qiaozhixiang@users.noreply.github.com"
           git add ci-logs/build.log
           git commit -m "ci: 回传构建日志 [skip ci]" >/dev/null 2>&1 || true
-          git push origin HEAD:refs/heads/ci-log >/dev/null 2>&1 || true
+          git push -f origin HEAD:refs/heads/ci-log >/dev/null 2>&1 || true
 
       - name: 构建失败就停
         if: steps.build.outcome != 'success'
@@ -266,3 +266,27 @@ jobs:
           gh release view ipa-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1             || gh release create ipa-latest --repo "$GITHUB_REPOSITORY"                  --title "最新 ipa（自动发布）" --notes "sha256(ipa): $sha"
           gh release upload ipa-latest *.ipa *.tipa --clobber --repo "$GITHUB_REPOSITORY"
           echo "下载地址：https://github.com/$GITHUB_REPOSITORY/releases/tag/ipa-latest"
+
+      - name: 写出本次状态（ci-logs/status.txt）
+        if: always()
+        run: |
+          set -uo pipefail
+          mkdir -p ci-logs
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "run=${GITHUB_RUN_NUMBER}"
+            echo "test=${{ steps.unit.outcome }}"
+            echo "build=${{ steps.build.outcome }}"
+            if ls "$RUNNER_TEMP"/*.ipa >/dev/null 2>&1; then
+              echo "ipa:"; ( cd "$RUNNER_TEMP" && shasum -a 256 *.ipa *.tipa 2>/dev/null | sed 's/^/  /' )
+            else
+              echo "ipa: none"
+            fi
+          } > ci-logs/status.txt
+          cat ci-logs/status.txt
+          git config user.name "SuperLocator Bot"
+          git config user.email "qiaozhixiang@users.noreply.github.com"
+          git add ci-logs/status.txt
+          git commit -m "ci: status [skip ci]" >/dev/null 2>&1 || true
+          git push -f origin HEAD:refs/heads/ci-log >/dev/null 2>&1 || true
+
